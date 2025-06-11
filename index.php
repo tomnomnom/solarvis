@@ -12,7 +12,7 @@
     <body>
         <!--<audio src=drone.mp3 id=sunsound></audio>-->
         <canvas width=1200 height=600 id=stage></canvas>
-        <script src=main.js></script>
+        <script src=main.js?<?=uniqid()?>></script>
         <script>
             const stage = document.getElementById("stage");
             //const sunSound = document.getElementById("sunsound");
