@@ -1,30 +1,57 @@
-navigator.mediaDevices.getUserMedia({audio: true}).then(function(stream){
+const canvas = document.getElementById("stage");
+const playButton = document.getElementById("playButton");
+const inputSound = document.getElementById("inputSound");
+
+canvas.addEventListener("click", e => {
+    console.log(inputSound.paused)
+    inputSound.paused ? inputSound.play() : inputSound.pause();
+});
+
+const state = {
+    fullScreen: false
+};
+
+window.addEventListener('keydown', e => {
+    switch (e.key) {
+
+    case 'f':
+        if (!state.fullScreen) {
+            document.documentElement.requestFullscreen()
+        } else {
+            document.exitFullscreen()
+        }
+        state.fullScreen = !state.fullScreen
+        break
+
+    case 'p':
+        inputSound.paused ? inputSound.play() : inputSound.pause();
+        break
+    }
+});
+
+const ctx = canvas.getContext("2d");
+
+canvas.width = window.innerWidth;
+canvas.height = window.innerHeight;
+
+window.addEventListener("resize", e => {
+    canvas.width = window.innerWidth;
+    canvas.height = window.innerHeight;
+});
+
+inputSound.addEventListener("play", e => {
     const audioCtx = new AudioContext();
 
     const analyser = audioCtx.createAnalyser();
     analyser.fftSize = 4096;
-    //analyser.connect(audioCtx.destination);
 
-    //const sunSound = document.getElementById("sunsound");
-    //const sun = audioCtx.createMediaElementSource(sunSound);
-    //sun.connect(analyser);
+    const sun = audioCtx.createMediaElementSource(inputSound);
+    sun.connect(analyser);
 
-    const microphone = audioCtx.createMediaStreamSource(stream);
-    microphone.connect(analyser);
+    analyser.connect(audioCtx.destination);
 
     const bufferLength = analyser.frequencyBinCount;
     const freqData = new Uint8Array(bufferLength);
-
-    const canvas = document.getElementById("stage");
-    const ctx = canvas.getContext("2d");
-
-    canvas.width = window.innerWidth;
-    canvas.height = window.innerHeight;
-
-    window.addEventListener("resize", e => {
-        canvas.width = window.innerWidth;
-        canvas.height = window.innerHeight;
-    });
 
     let nudgeFactor = 1000;
 
@@ -48,8 +75,8 @@ navigator.mediaDevices.getUserMedia({audio: true}).then(function(stream){
         let totalHeight = 0;
 
         for (let i = 0; i < bufferLength; i++) {
-            let spikeLength = (freqData[i] / 255) * sunRadius / 80;
-            spikeLength = spikeLength**4;
+            let spikeLength = (freqData[i] / 255) * sunRadius/4;
+            spikeLength = spikeLength**1.5;
             spikeLength += Math.random()*4;
             totalHeight += freqData[i];
 
@@ -82,4 +109,3 @@ navigator.mediaDevices.getUserMedia({audio: true}).then(function(stream){
 
     drawFrame();
 });
-
