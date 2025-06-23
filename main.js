@@ -3,12 +3,12 @@ const playButton = document.getElementById("playButton");
 const inputSound = document.getElementById("inputSound");
 
 canvas.addEventListener("click", e => {
-    console.log(inputSound.paused)
     inputSound.paused ? inputSound.play() : inputSound.pause();
 });
 
 const state = {
-    fullScreen: false
+    fullScreen: false,
+    init: false
 };
 
 window.addEventListener('keydown', e => {
@@ -22,6 +22,14 @@ window.addEventListener('keydown', e => {
         }
         state.fullScreen = !state.fullScreen
         break
+
+    case 'l':
+        inputSound.currentTime += 10;
+        break;
+
+    case 'k':
+        inputSound.currentTime -= 10;
+        break;
 
     case 'p':
         inputSound.paused ? inputSound.play() : inputSound.pause();
@@ -40,6 +48,12 @@ window.addEventListener("resize", e => {
 });
 
 inputSound.addEventListener("play", e => {
+    if (state.init) return;
+    state.init = true;
+    init();
+});
+
+function init() {
     const audioCtx = new AudioContext();
 
     const analyser = audioCtx.createAnalyser();
@@ -54,9 +68,13 @@ inputSound.addEventListener("play", e => {
     const freqData = new Uint8Array(bufferLength);
 
     let nudgeFactor = 1000;
+    let progress = 0;
 
     function drawFrame() {
         requestAnimationFrame(drawFrame);
+
+        progress = inputSound.currentTime / (inputSound.duration * 0.9)
+        progress = Math.min(progress, 1)
 
         analyser.getByteFrequencyData(freqData);
 
@@ -64,10 +82,21 @@ inputSound.addEventListener("play", e => {
         ctx.fillRect(0, 0, canvas.width, canvas.height);
 
         const maxSize = Math.min(canvas.width, canvas.height);
-        const sunRadius = maxSize / 3;
+
+        const maxSunRadius = maxSize / 3;
+        const minSunRadius = maxSize / 20;
+        const sunRadius = minSunRadius + (maxSunRadius - minSunRadius) * progress;
+
+        const endPos = canvas.height/2;
+        const startPos = canvas.height + sunRadius;
+        const pos = startPos + (endPos - startPos) * progress;
+
+        const maxExponent = 1.8;
+        const minExponent = 1;
+        const exponent = minExponent + (maxExponent - minExponent) * progress;
 
         ctx.save()
-        ctx.translate(canvas.width/2, canvas.height/2);
+        ctx.translate(canvas.width/2, pos);
         ctx.shadowBlur = 15;
 
         ctx.beginPath();
@@ -76,7 +105,7 @@ inputSound.addEventListener("play", e => {
 
         for (let i = 0; i < bufferLength; i++) {
             let spikeLength = (freqData[i] / 255) * sunRadius/4;
-            spikeLength = spikeLength**1.5;
+            spikeLength = spikeLength**exponent;
             spikeLength += Math.random()*4;
             totalHeight += freqData[i];
 
@@ -92,7 +121,7 @@ inputSound.addEventListener("play", e => {
 
         nudgeFactor = (1-(totalHeight/bufferLength/255))*1500;
 
-        let lightness = ((totalHeight/bufferLength/255) * 30) + 70;
+        let lightness = ((totalHeight/bufferLength/255) * 40) + 70;
 
         ctx.fillStyle = `hsl(40 100 ${lightness})`;
         ctx.shadowColor = `hsl(40 100 ${lightness})`;
@@ -108,4 +137,6 @@ inputSound.addEventListener("play", e => {
     }
 
     drawFrame();
-});
+}
+
+
